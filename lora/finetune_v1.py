@@ -71,7 +71,7 @@ training_args = TrainingArguments(
     weight_decay=0.01,
     logging_steps=1,
     save_strategy="epoch",
-    fp16=False,
+    fp16=True,
     gradient_accumulation_steps=4,
 )
 
