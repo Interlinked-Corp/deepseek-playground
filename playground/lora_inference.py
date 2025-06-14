@@ -97,7 +97,8 @@ Given the following input and retrieved context, generate ONLY the section: {sec
             top_p=0.95,
             do_sample=True,
             pad_token_id=tokenizer.pad_token_id,
-            eos_token_id=tokenizer.eos_token_id
+            eos_token_id=tokenizer.eos_token_id,
+            repetition_penalty=1.2,
         )
     generated = tokenizer.decode(outputs[0], skip_special_tokens=True)
 

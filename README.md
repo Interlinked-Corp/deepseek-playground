@@ -8,7 +8,7 @@ This project enhances `DeepSeek-R1-Distill-Qwen-1.5B` (1.5 billion parameters) u
 ## Techniques
 ### Few-Shot Learning
 - **Purpose**: Use the pre-trained `DeepSeek-R1-Distill-Qwen-1.5B` with in-context examples instead of fine-tuning, due to small dataset size (6 samples).
-- **Script**: `deepseek_fewshot.py`.
+- **Script**: `playground/deepseek_fewshot.py`.
 - **Method**: Loads `disaster_data.jsonl` as examples, constructs a prompt, and generates analysis without training.
 - **Usage**:
   ```bash
@@ -17,7 +17,7 @@ This project enhances `DeepSeek-R1-Distill-Qwen-1.5B` (1.5 billion parameters) u
 - **Purpose**: Fine-tune the LLM efficiently without updating all 1.5B parameters.
 - **Method**: Adds small, trainable adapter matrices to attention layers (`q_proj`, `v_proj`), freezing original weights. Only ~3M parameters are trained (~1-2% of total).
 - **Implementation**:
-  - Script: `deepseek_lora.py`.
+  - Script: `src/deepseek_lora.py`.
   - Dataset: `disaster_data.jsonl` (e.g., "Analyze seismic data: 4.5 magnitude near Cascadia" → "Moderate risk; monitor USGS").
   - Config: `r=16`, `lora_alpha=32`, 3 epochs, batch size 1, `fp16`.
 - **Outcome**: Model adapts to disaster reasoning, saved to `./fine_tuned_deepseek_qwen/`.
@@ -29,7 +29,7 @@ This project enhances `DeepSeek-R1-Distill-Qwen-1.5B` (1.5 billion parameters) u
   - **Generator**: Fine-tuned Qwen-1.5B generates responses with retrieved context.
 - **Why**: Enhances accuracy with external data (e.g., USGS/NOAA/NASA-like reports).
 - **Implementation**:
-  - Script: `deepseek_rag.py`.
+  - Script: `src/deepseek_rag.py`.
   - Process: Retrieves context for feeds (e.g., "5.0 magnitude near Seattle"), generates insights.
 - **Outcome**: Context-aware outputs (e.g., "Moderate risk; monitor USGS").
 
