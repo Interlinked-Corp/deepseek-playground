@@ -37,7 +37,7 @@ def process_disaster_rag(data_feed):
     responses = {}
     for prompt in prompts:
         inputs = tokenizer(prompt, return_tensors="pt").to(device)
-        outputs = model.generate(**inputs, max_length=100)
+        outputs = model.generate(**inputs, max_new_tokens=256)
         responses[prompt.split(":")[0]] = tokenizer.decode(outputs[0], skip_special_tokens=True)
     return responses
 
