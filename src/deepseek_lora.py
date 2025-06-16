@@ -2,7 +2,9 @@
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer, Trainer, TrainingArguments
 from peft import LoraConfig, get_peft_model
-from datasets import load_dataset
+from datasets import Dataset, DatasetDict
+import json
+import pandas as pd
 
 # Load model and tokenizer
 model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
@@ -24,30 +26,35 @@ lora_config = LoraConfig(
 model = get_peft_model(model, lora_config)
 
 # Load dataset
-dataset = load_dataset("json", data_files="disaster_data.jsonl")
+data_list = []
+with open("playground/disaster_data_modified.jsonl", "r", encoding="utf-8") as f:
+    for line in f:
+        data_list.append(json.loads(line.strip()))
+
+df = pd.DataFrame(data_list)
+dataset = Dataset.from_pandas(df)
+dataset = DatasetDict({"train": dataset})
+
 print(f"Dataset size: {len(dataset['train'])} examples")
 
 # Tokenize with consistent max_length
 def tokenize_function(examples):
     instructions = examples["instruction"]
     outputs = examples["output"]
-    # Combine instruction and output with a separator
     combined = [f"{instr}\n\nAnalysis:\n{out}" for instr, out in zip(instructions, outputs)]
     encodings = tokenizer(
         combined,
         truncation=True,
         padding="max_length",
-        max_length=768,  # Increased to fit both input and output
+        max_length=768,
         return_tensors="pt"
     )
     input_ids = encodings["input_ids"]
     attention_mask = encodings["attention_mask"]
     labels = input_ids.clone()
-    # Mask input portion in labels
     for i in range(len(instructions)):
         input_len = len(tokenizer.encode(instructions[i], add_special_tokens=False)) + len(tokenizer.encode("\n\nAnalysis:\n", add_special_tokens=False))
         labels[i, :input_len] = -100
-    print(f"Input IDs shape: {input_ids.shape}, Labels shape: {labels.shape}")
     return {
         "input_ids": input_ids.squeeze(),
         "attention_mask": attention_mask.squeeze(),
@@ -65,8 +72,8 @@ training_args = TrainingArguments(
     output_dir="./deepseek_lora_output_training_args",
     per_device_train_batch_size=1,
     gradient_accumulation_steps=4,
-    num_train_epochs=5,
-    learning_rate=2e-5,
+    num_train_epochs=10,  
+    learning_rate=1e-5,  
     fp16=True,
     logging_steps=1,
     save_steps=5,
@@ -94,7 +101,7 @@ trainer = CustomTrainer(
 total_samples = len(tokenized_dataset["train"])
 effective_batch_size = training_args.per_device_train_batch_size * training_args.gradient_accumulation_steps
 total_steps = (total_samples // effective_batch_size) * training_args.num_train_epochs
-print(f"Total training steps: {total_steps}")  # 50 with 10 samples, 5 epochs
+print(f"Total training steps: {total_steps}") # 이제 100 단계가 될 것입니다 (10샘플 / 4배치 * 10 에포크)
 
 # Fine-tune
 trainer.train()

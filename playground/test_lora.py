@@ -1,13 +1,15 @@
-# test_prompt_tuning.py
+import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 from peft import PeftModel
-import torch
+import json # 추가된 import
+import pandas as pd # 추가된 import
+import re # 추가된 import
 
-model_path = "./prompt_tuning_output"
+model_path = "/content/deepseek-playground/deepseek_lora_output"
 base_model_name = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 tokenizer = AutoTokenizer.from_pretrained(model_path)
 base_model = AutoModelForCausalLM.from_pretrained(base_model_name, torch_dtype=torch.bfloat16)
-model = PeftModel.from_pretrained(base_model, model_path)  # Load prompt-tuned config
+model = PeftModel.from_pretrained(base_model, model_path)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
 
@@ -23,10 +25,24 @@ Analysis:"""
 inputs = tokenizer(prompt, return_tensors="pt").to(device)
 outputs = model.generate(
     **inputs,
-    max_new_tokens=600,
-    temperature=0.5,
+    max_new_tokens=150,
+    temperature=0.1,
     top_p=0.95,
-    do_sample=True
+    do_sample=True,
+    repetition_penalty=1.15
 )
 response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-print(f"Response: {response.split('Analysis:')[-1].strip() if 'Analysis:' in response else response}")
+
+generated_text = response.split('Analysis:')[-1].strip() if 'Analysis:' in response else response
+
+# 첫 번째 문장 또는 문단만 추출
+first_sentence_match = re.match(r"^(.*?(\.|\n|$))", generated_text)
+if first_sentence_match:
+    final_output = first_sentence_match.group(1).strip()
+else:
+    final_output = generated_text.split('\n')[0].strip()
+
+if not final_output and generated_text:
+    final_output = generated_text.split('\n')[0].strip()
+
+print(f"Response: {final_output}")
